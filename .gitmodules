@@ -1,0 +1,3 @@
+[submodule "LSM9DS0"]
+	path = LSM9DS0
+	url = http://github.com/coder543/LSM9DS0/
