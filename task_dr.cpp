@@ -1,3 +1,8 @@
+#include "LSM9DS0.h"
+#include "tasks.h"
+#include "ao_quaternion.h"
+
+ao_quaternion Qstate; //quaternion state
 
 void print_vals(vector<Triple> &accvals, vector<Triple> &gyrovals, Triple &magvals)
 {
@@ -23,13 +28,15 @@ void print_vals(vector<Triple> &accvals, vector<Triple> &gyrovals, Triple &magva
     }
 }
 
-void dr_task()
+void task_dr()
 {
     while (1) {
         //collect data points as close together in time as possible
         vector<Triple> accvals = lsm9.readAccel();
         vector<Triple> gyrovals = lsm9.readGyro();
         Triple magvals = lsm9.readMagneto();
+        
+        print_vals(accvals, gyrovals, magvals);
         
     }
     

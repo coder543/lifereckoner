@@ -1,6 +1,8 @@
 #ifndef TASKS_H
 #define TASKS_H
 
-void dr_task();
+#include "global_state.h"
+
+void task_dr();
 
 #endif
