@@ -3,9 +3,9 @@
 #include "ao_quaternion.h"
 
 ao_quaternion Qstate; //quaternion state
-vector<Triple> accvals = lsm9.readAccel();
-vector<Triple> gyrovals = lsm9.readGyro();
-Triple magvals = lsm9.readMagneto();
+vector<Triple> accvals;
+vector<Triple> gyrovals;
+Triple magvals;
 
 // void print_vals(vector<Triple> &accvals, vector<Triple> &gyrovals, Triple &magvals)
 // {
@@ -38,9 +38,20 @@ inline void update_vals()
     magvals = lsm9.readMagneto();
 }
 
-inline void update_Qstate()
+inline void update_Qstate(Triple gyro)
 {
+    ao_quaternion qx = {.r = cosf(gyro.x/2), .x = sinf(gyro.x/2), .y = 0, .z = 0};
+    ao_quaternion qy = {.r = cosf(gyro.y/2), .x = 0, .y = sinf(gyro.y/2), .z = 0};
+    ao_quaternion qz = {.r = cosf(gyro.z/2), .x = 0, .y = 0, .z = sinf(gyro.z/2)};
+    ao_quaternion r1, r2;
     
+    ao_quaternion_multiply(&r1, &qx, &qy);
+    ao_quaternion_multiply(&r2, &r1, &qz);
+    
+    ao_quaternion_multiply(&Qstate, &Qstate, &r2);
+    
+    //now that the orientation is updated, apply acceleration
+    //...
 }
 
 void task_dr()
@@ -56,8 +67,10 @@ void task_dr()
     ao_quaternion_vectors_to_rotation(&Qstate, &gravity, &v);
     
     while (1) {
-        update_vals();
-        update_Qstate();        
+        for (unsigned int i = 0; i < gyrovals.size(); i++)
+            update_Qstate(gyrovals[i]);
+        
+        update_vals();        
     }
     
 }
