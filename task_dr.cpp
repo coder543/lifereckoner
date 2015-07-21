@@ -2,34 +2,29 @@
 #include "tasks.h"
 #include "ao_quaternion.h"
 
+struct Triple_F
+{
+    float x;
+    float y;
+    float z;
+};
+
 ao_quaternion Qstate; //quaternion state
+Triple_F Rpos = {.x = 0.0, .y = 0.0, .z = 0.0}; //Real position
+Triple_F Rvel = {.x = 0.0, .y = 0.0, .z = 0.0}; //Real velocity
+
 vector<Triple> accvals;
 vector<Triple> gyrovals;
 Triple magvals;
 
-// void print_vals(vector<Triple> &accvals, vector<Triple> &gyrovals, Triple &magvals)
-// {
-//     
-//     //print the collected data
-//     for(std::vector<Triple>::iterator it = accvals.begin(); it != accvals.end(); ++it) {
-//         pc.printf("ax: %f Gs\r\n", raw2gravities((*it).x, 2));
-//         pc.printf("ay: %f Gs\r\n", raw2gravities((*it).y, 2));
-//         pc.printf("az: %f Gs\r\n", raw2gravities((*it).z, 2));
-//         pc.printf("\r\n");
-//     }
-//     
-//     pc.printf("mx: %f Gauss\r\n", raw2gauss(magvals.x, 2));
-//     pc.printf("my: %f Gauss\r\n", raw2gauss(magvals.y, 2));
-//     pc.printf("mz: %f Gauss\r\n", raw2gauss(magvals.z, 2));
-//     pc.printf("\r\n");
-//     
-//     for(std::vector<Triple>::iterator it = gyrovals.begin(); it != gyrovals.end(); ++it) {
-//         pc.printf("gx: %f dps\r\n", raw2dps((*it).x, 250));
-//         pc.printf("gy: %f dps\r\n", raw2dps((*it).y, 250));
-//         pc.printf("gz: %f dps\r\n", raw2dps((*it).z, 250));
-//         pc.printf("\r\n");
-//     }
-// }
+#define ACC_PERIOD    0.000625            //seconds between each accelerometer sample
+#define GYRO_PERIOD   0.0010416667        //seconds between each gyro sample
+#define MAG_PERIOD    0.01                //seconds between each magnetometer sample
+
+#define ACC_PERIOD_2  0.000000390625      //seconds between each accelerometer sample
+#define GYRO_PERIOD_2 0.0000010850694     //seconds between each gyro sample
+#define MAG_PERIOD_2  0.0001              //seconds between each magnetometer sample
+
 
 inline void update_vals()
 {
@@ -50,8 +45,18 @@ inline void update_Qstate(Triple gyro)
     
     ao_quaternion_multiply(&Qstate, &Qstate, &r2);
     
-    //now that the orientation is updated, apply acceleration
-    //...
+}
+
+inline void update_Rpos(Triple acc)
+{
+    
+#warning "Need to implement acc_rotated"
+    Triple_F acc_rotated; //acceleration, after conversion to gravities
+                      //and rotation into the inertial reference frame
+
+    Rpos.x += Rvel.x * ACC_PERIOD + acc_rotated.x * ACC_PERIOD_2;
+    Rpos.y += Rvel.y * ACC_PERIOD + acc_rotated.y * ACC_PERIOD_2;
+    Rpos.z += Rvel.z * ACC_PERIOD + acc_rotated.z * ACC_PERIOD_2;
 }
 
 void task_dr()
