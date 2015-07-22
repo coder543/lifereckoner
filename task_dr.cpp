@@ -2,6 +2,9 @@
 #include "tasks.h"
 #include "ao_quaternion.h"
 
+Ticker accTick;
+Ticker gyroTick;
+
 struct Triple_F
 {
     float x;
@@ -59,9 +62,32 @@ inline void update_Rpos(Triple acc)
     Rpos.z += Rvel.z * ACC_PERIOD + acc_rotated.z * ACC_PERIOD_2;
 }
 
+void newAcc()
+{
+    accvals = lsm9.readAccel();
+    //should only be one value, but be thorough
+    for (unsigned int i = 0; i < accvals.size(); i++)
+        update_Rpos(accvals[i]);
+}
+
+void newGyro()
+{
+    gyrovals = lsm9.readGyro();
+    //should only be one value, but be thorough
+    for (unsigned int i = 0; i < gyrovals.size(); i++)
+        update_Qstate(gyrovals[i]);
+}
+
 void task_dr()
 {
-    update_vals();
+    update_vals(); //clear whatever buffer is built-up in the LSM9DS0
+    
+    accvals = lsm9.readAccel(); //read the first real accel val,
+    accTick.attach(&newAcc, ACC_PERIOD); //which incidentally syncs this timer up
+    
+    gyrovals = lsm9.readGyro(); //repeat for gyro vals
+    gyroTick.attach(&newGyro, GYRO_PERIOD); //and sync this timer as much as possible
+    
     
     //consider popping accvals[0] off stack
     ao_quaternion gravity = {.r = 0, .x = raw2gravities(accvals[0].x, 2), .y = raw2gravities(accvals[0].y, 2), .z = raw2gravities(accvals[0].z, 2)};
@@ -70,6 +96,7 @@ void task_dr()
     ao_quaternion v = {.r = 0, .x = 0, .y = 0, .z = 1};
     
     ao_quaternion_vectors_to_rotation(&Qstate, &gravity, &v);
+    
     
     while (1) {
         for (unsigned int i = 0; i < gyrovals.size(); i++)
