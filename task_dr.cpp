@@ -96,13 +96,7 @@ void task_dr()
     ao_quaternion v = {.r = 0, .x = 0, .y = 0, .z = 1};
     
     ao_quaternion_vectors_to_rotation(&Qstate, &gravity, &v);
-    
-    
-    while (1) {
-        for (unsigned int i = 0; i < gyrovals.size(); i++)
-            update_Qstate(gyrovals[i]);
-        
-        update_vals();        
-    }
+   
+    while (1); //busy loop forever
     
 }
