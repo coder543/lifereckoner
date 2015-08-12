@@ -5,8 +5,6 @@
 Ticker accTick;
 Ticker gyroTick;
 
-int counter = 0;
-
 struct Triple_F
 {
     float x;
@@ -18,17 +16,29 @@ ao_quaternion Qstate; //quaternion state
 Triple_F Rpos = {.x = 0.0, .y = 0.0, .z = 0.0}; //Real position
 Triple_F Rvel = {.x = 0.0, .y = 0.0, .z = 0.0}; //Real velocity
 
+
+/*
+ *  Movement on each axis is completely unrelated to movement 
+ *  on any other axis, so each axis can have a separate Kalman
+ *  filter, and it should not suffer for it.
+ *  
+ *  In other words, covariance between axes should be zero.
+ */
+
+kalman x, y, z;
+
+
 vector<Triple> accvals;
 vector<Triple> gyrovals;
 Triple magvals;
 
-#define ACC_PERIOD    0.000625            //seconds between each accelerometer sample
-#define GYRO_PERIOD   0.0010416667        //seconds between each gyro sample
-#define MAG_PERIOD    0.01                //seconds between each magnetometer sample
+const float ACC_PERIOD    = 0.000625;            //seconds between each accelerometer sample
+const float GYRO_PERIOD   = 0.0010416667;        //seconds between each gyro sample
+const float MAG_PERIOD    = 0.01;                //seconds between each magnetometer sample
 
-#define ACC_PERIOD_2  0.000000390625      //seconds between each accelerometer sample
-#define GYRO_PERIOD_2 0.0000010850694     //seconds between each gyro sample
-#define MAG_PERIOD_2  0.0001              //seconds between each magnetometer sample
+const float ACC_PERIOD_2  = 0.000000390625;      //seconds between each accelerometer sample
+const float GYRO_PERIOD_2 = 0.0000010850694;     //seconds between each gyro sample
+const float MAG_PERIOD_2  = 0.0001;              //seconds between each magnetometer sample
 
 
 inline void update_vals()
@@ -65,6 +75,8 @@ inline void update_Qstate(Triple gyro)
 
 inline void update_Rpos(Triple acc)
 {
+    static int counter = 0;
+
     //pure quaternion form of acc after conversion to gravities
     ao_quaternion acc_tmp = {.r = 0, .x = raw2gravities(acc.x, 2), .y = raw2gravities(acc.y, 2), .z = raw2gravities(acc.z, 2)};
     
@@ -73,16 +85,28 @@ inline void update_Rpos(Triple acc)
     
     //acceleration, after rotation into the inertial reference frame
     Triple_F acc_rotated = {.x = acc_tmp.x, .y = acc_tmp.y, .z = acc_tmp.z}; 
+
+    x.predict();
+    x.update(acc_rotated.x);
+    Rpos.x = x.X[0];
+
+    y.predict();
+    y.update(acc_rotated.y);
+    Rpos.y = y.X[0];
+
+    z.predict();
+    z.update(acc_rotated.z);
+    Rpos.z = z.X[0];
     
-    //update current velocity
-    Rvel.x += acc_rotated.x * ACC_PERIOD;
-    Rvel.y += acc_rotated.y * ACC_PERIOD;
-    Rvel.z += acc_rotated.z * ACC_PERIOD;
+    // //update current velocity
+    // Rvel.x += acc_rotated.x * ACC_PERIOD;
+    // Rvel.y += acc_rotated.y * ACC_PERIOD;
+    // Rvel.z += acc_rotated.z * ACC_PERIOD;
     
-    //update absolute position
-    Rpos.x += Rvel.x * ACC_PERIOD + acc_rotated.x * ACC_PERIOD_2;
-    Rpos.y += Rvel.y * ACC_PERIOD + acc_rotated.y * ACC_PERIOD_2;
-    Rpos.z += Rvel.z * ACC_PERIOD + acc_rotated.z * ACC_PERIOD_2;
+    // //update absolute position
+    // Rpos.x += Rvel.x * ACC_PERIOD + acc_rotated.x * ACC_PERIOD_2;
+    // Rpos.y += Rvel.y * ACC_PERIOD + acc_rotated.y * ACC_PERIOD_2;
+    // Rpos.z += Rvel.z * ACC_PERIOD + acc_rotated.z * ACC_PERIOD_2;
     
     counter += 1;
     if (counter % 75 == 0) {
