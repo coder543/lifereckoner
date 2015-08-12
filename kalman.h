@@ -27,6 +27,7 @@ private:
                         {0,   1,     dt    },
                         {0,   0,     1     }
                     }; 
+
     float Q[3][3] = { //system noise
                         {0,   0,   0},
                         {0,   0,   0},
@@ -35,7 +36,7 @@ private:
 
 
     /*** values for update step ***/
-    float H[3] = {0, 0, 1}; //state space to measurement space conversion
+    float H[3] = {0, 0, 16384}; //state space to measurement space conversion
     float R = 0.01; //sensor measurement noise
     float S[3][3]; //system uncertainty
     float K[3][3]; //kalman gain
