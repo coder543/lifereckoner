@@ -20,7 +20,7 @@ OBJDUMP = $(GCC_BIN)arm-none-eabi-objdump
 SIZE 	= $(GCC_BIN)arm-none-eabi-size
 
 CPU = -mcpu=cortex-m4 -mthumb -mfpu=fpv4-sp-d16 -mfloat-abi=$(FLOAT_ABI)
-CC_FLAGS = $(CPU) -c -g -fno-common -fmessage-length=0 -Wall -fno-exceptions -ffunction-sections -fdata-sections -fomit-frame-pointer
+CC_FLAGS = $(CPU) -c -g -fno-common -fmessage-length=0 -Wall -Werror -fno-exceptions -ffunction-sections -fdata-sections -fomit-frame-pointer
 CC_FLAGS += -MMD -MP
 CC_SYMBOLS = -DTARGET_NUCLEO_F334R8 -DTARGET_M4 -DTARGET_CORTEX_M -DTARGET_STM -DTARGET_STM32F3 -DTARGET_STM32F334R8 -DTOOLCHAIN_GCC_ARM -DTOOLCHAIN_GCC -D__CORTEX_M4 -DARM_MATH_CM4 -D__FPU_PRESENT=1 -DMBED_BUILD_TIMESTAMP=1432758582.77 -D__MBED__=1 -DTARGET_FF_ARDUINO -DTARGET_FF_MORPHO 
 
@@ -53,13 +53,13 @@ clean:
 	$(CC)  $(CC_FLAGS) $(CC_SYMBOLS) -std=gnu99   $(INCLUDE_PATHS) -o $@ $<
 
 .cpp.o:
-	$(CPP) $(CC_FLAGS) $(CC_SYMBOLS) -std=gnu++98 -fno-rtti $(INCLUDE_PATHS) -o $@ $<
+	$(CPP) $(CC_FLAGS) $(CC_SYMBOLS) -std=c++11 -fno-rtti $(INCLUDE_PATHS) -o $@ $<
 
 LSM9DS0.o:
-	$(CPP) $(CC_FLAGS) $(CC_SYMBOLS) -std=gnu++98 -fno-rtti $(INCLUDE_PATHS) -o LSM9DS0.o LSM9DS0/LSM9DS0.cpp
+	$(CPP) $(CC_FLAGS) $(CC_SYMBOLS) -std=c++11 -fno-rtti $(INCLUDE_PATHS) -o LSM9DS0.o LSM9DS0/LSM9DS0.cpp
 
 LSM9DS0_helper.o:
-	$(CPP) $(CC_FLAGS) $(CC_SYMBOLS) -std=gnu++98 -fno-rtti $(INCLUDE_PATHS) -o LSM9DS0_helper.o LSM9DS0/LSM9DS0_helper.cpp
+	$(CPP) $(CC_FLAGS) $(CC_SYMBOLS) -std=c++11 -fno-rtti $(INCLUDE_PATHS) -o LSM9DS0_helper.o LSM9DS0/LSM9DS0_helper.cpp
 
 
 $(PROJECT).elf: $(OBJECTS) $(SYS_OBJECTS)

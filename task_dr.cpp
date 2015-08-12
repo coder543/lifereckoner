@@ -1,6 +1,7 @@
 #include "LSM9DS0.h"
 #include "tasks.h"
 #include "ao_quaternion.h"
+#include "kalman.h"
 
 Ticker accTick;
 Ticker gyroTick;
