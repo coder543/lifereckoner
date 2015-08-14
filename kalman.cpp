@@ -36,10 +36,18 @@ void kalman::predict()
 {
 
     float new_X[num_vars];
+    float new_P[num_vars * num_vars];
+
+        /*** initialize matrix references ***/
 
     arm_matrix mat_new_X = arm_mat_instance_col(new_X);
     arm_matrix mat_current_X = arm_mat_instance_col(X);
     arm_matrix mat_F = arm_mat_instance(F);
+
+    arm_matrix mat_new_P = arm_mat_instance(new_P);
+    arm_matrix mat_current_P = arm_mat_instance(P);
+    arm_matrix mat_F_T = arm_mat_instance(F_T);
+    arm_matrix mat_Q = arm_mat_instance(Q);
 
                 /*** x = F * x ***/
 
@@ -48,14 +56,6 @@ void kalman::predict()
 
     // X = new_X;
     memcpy(X, new_X, sizeof(float) * num_vars);
-
-
-    float new_P[num_vars * num_vars];
-
-    arm_matrix mat_new_P = arm_mat_instance(new_P);
-    arm_matrix mat_current_P = arm_mat_instance(P);
-    arm_matrix mat_F_T = arm_mat_instance(F_T);
-    arm_matrix mat_Q = arm_mat_instance(Q);
 
 
             /*** P = F * P * (F^T) + Q ***/
