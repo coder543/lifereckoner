@@ -49,17 +49,21 @@ inline void update_vals()
     magvals = lsm9.readMagneto();
 }
 
-inline void update_Qstate(Triple gyro)
+inline void update_Qstate(int gyroNum)
 {
+    float gyro_x, gyro_y, gyro_z;
+    gyro_x = raw2dps(gyrovals[gyroNum].x, 250) * GYRO_PERIOD / 2;
+    gyro_y = raw2dps(gyrovals[gyroNum].y, 250) * GYRO_PERIOD / 2;
+    gyro_z = raw2dps(gyrovals[gyroNum].z, 250) * GYRO_PERIOD / 2;
     
     //Qtmp = qyaw * qpitch * qroll
     
     //qyaw
-    ao_quaternion qz = {.r = cosf(gyro.z/2), .x = 0, .y = 0, .z = sinf(gyro.z/2)};
+    ao_quaternion qz = {.r = cosf(gyro_z), .x = 0, .y = 0, .z = sinf(gyro_z)};
     //qpitch
-    ao_quaternion qy = {.r = cosf(gyro.y/2), .x = 0, .y = sinf(gyro.y/2), .z = 0};
+    ao_quaternion qy = {.r = cosf(gyro_y), .x = 0, .y = sinf(gyro_y), .z = 0};
     //qroll
-    ao_quaternion qx = {.r = cosf(gyro.x/2), .x = sinf(gyro.x/2), .y = 0, .z = 0};
+    ao_quaternion qx = {.r = cosf(gyro_x), .x = sinf(gyro_x), .y = 0, .z = 0};
     
     //temporary variables
     ao_quaternion r1, Qtmp;
@@ -71,7 +75,6 @@ inline void update_Qstate(Triple gyro)
     
     //multiply Qstate by Qtmp to get new Qstate
     ao_quaternion_multiply(&Qstate, &Qstate, &Qtmp);
-    
 }
 
 inline void update_Rpos(Triple acc)
@@ -89,30 +92,32 @@ inline void update_Rpos(Triple acc)
 
     x.predict();
     x.update(acc_rotated.x);
-    Rpos.x = x.X[0];
+    //Rpos.x = x.X[0];
 
     y.predict();
     y.update(acc_rotated.y);
-    Rpos.y = y.X[0];
+    //Rpos.y = y.X[0];
 
     z.predict();
     z.update(acc_rotated.z);
-    Rpos.z = z.X[0];
+    //Rpos.z = z.X[0];
     
     // //update current velocity
-    // Rvel.x += acc_rotated.x * ACC_PERIOD;
-    // Rvel.y += acc_rotated.y * ACC_PERIOD;
-    // Rvel.z += acc_rotated.z * ACC_PERIOD;
+    Rvel.x = acc_rotated.x * ACC_PERIOD;
+    Rvel.y = acc_rotated.y * ACC_PERIOD;
+    Rvel.z = acc_rotated.z * ACC_PERIOD;
     
     // //update absolute position
-    // Rpos.x += Rvel.x * ACC_PERIOD + acc_rotated.x * ACC_PERIOD_2;
-    // Rpos.y += Rvel.y * ACC_PERIOD + acc_rotated.y * ACC_PERIOD_2;
-    // Rpos.z += Rvel.z * ACC_PERIOD + acc_rotated.z * ACC_PERIOD_2;
+    Rpos.x += Rvel.x * ACC_PERIOD + acc_rotated.x * ACC_PERIOD_2;
+    Rpos.y += Rvel.y * ACC_PERIOD + acc_rotated.y * ACC_PERIOD_2;
+    Rpos.z += Rvel.z * ACC_PERIOD + acc_rotated.z * ACC_PERIOD_2;
     
     counter += 1;
     if (counter % 75 == 0) {
         counter = 0;
-        pc.printf("%.2f, %.2f, %.2f\r\n", Rpos.x, Rpos.y, Rpos.z);
+        pc.printf("%.5f, %.5f, %.5f , %.5f, %.5f, %.5f\r\n", Rpos.x, Rpos.y, Rpos.z, Rvel.x, Rvel.y, Rvel.z);
+        //pc.printf("%.5f, %.5f, %.5f, %.5f\r\n", Qstate.r, Qstate.x, Qstate.y, Qstate.z);
+        //pc.printf("%.5f,%.5f,%.5f,%.5f,%.5f,%.5f,%.5f\r\n", raw2gravities(acc.x, 2), raw2gravities(acc.y, 2), raw2gravities(acc.z, 2), acc_tmp.x, acc_tmp.y, acc_tmp.z, acc_tmp.r);
     }
 }
 
@@ -131,7 +136,7 @@ void newGyro()
     //! pc.printf("g: %i\r\n", gyrovals.size());
     //should only be one value, but be thorough
     for (unsigned int i = 0; i < gyrovals.size(); i++)
-        update_Qstate(gyrovals[i]);
+        update_Qstate(i);
 }
 
 void task_dr()
@@ -141,7 +146,7 @@ void task_dr()
     pc.printf("Starting...\r\n");
     
     accvals = lsm9.readAccel(); //read the first real accel val,
-    accTick.attach(&newAcc, ACC_PERIOD); //which incidentally syncs this timer up
+    accTick.attach(&newAcc, ACC_PERIOD); //which, incidentally, might sync this timer up
     
     gyrovals = lsm9.readGyro(); //repeat for gyro vals
     gyroTick.attach(&newGyro, GYRO_PERIOD); //and sync this timer as much as possible
