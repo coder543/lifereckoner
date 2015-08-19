@@ -49,20 +49,21 @@ inline void update_vals()
     magvals = lsm9.readMagneto();
 }
 
-inline void update_Qstate(int gyroNum)
+inline void update_Qstate(Triple gyroVal)
 {
-    float gyro_x, gyro_y, gyro_z;
-    gyro_x = raw2dps(gyrovals[gyroNum].x, 250) * GYRO_PERIOD / 2;
-    gyro_y = raw2dps(gyrovals[gyroNum].y, 250) * GYRO_PERIOD / 2;
-    gyro_z = raw2dps(gyrovals[gyroNum].z, 250) * GYRO_PERIOD / 2;
+    volatile Triple_F gyro = {
+        .x = raw2dps(gyroVal.x, 250) * GYRO_PERIOD,
+        .y = raw2dps(gyroVal.y, 250) * GYRO_PERIOD,
+        .z = raw2dps(gyroVal.z, 250) * GYRO_PERIOD
+    };
+    //pc.printf("%.5f, %.5f, %.5f\r\n", gyro.x, gyro.y, gyro.z);
     //Qtmp = qyaw * qpitch * qroll
-    
     //qyaw
-    ao_quaternion qz = {.r = cosf(gyro_z), .x = 0, .y = 0, .z = sinf(gyro_z)};
+    ao_quaternion qz = {.r = cosf(gyro.z / 2), .x = 0, .y = 0, .z = sinf(gyro.z / 2)};
     //qpitch
-    ao_quaternion qy = {.r = cosf(gyro_y), .x = 0, .y = sinf(gyro_y), .z = 0};
+    ao_quaternion qy = {.r = cosf(gyro.y / 2), .x = 0, .y = sinf(gyro.y / 2), .z = 0};
     //qroll
-    ao_quaternion qx = {.r = cosf(gyro_x), .x = sinf(gyro_x), .y = 0, .z = 0};
+    ao_quaternion qx = {.r = cosf(gyro.x / 2), .x = sinf(gyro.x / 2), .y = 0, .z = 0};
     
     //temporary variables
     ao_quaternion r1, Qtmp;
@@ -74,14 +75,14 @@ inline void update_Qstate(int gyroNum)
     
     //multiply Qstate by Qtmp to get new Qstate
     ao_quaternion_multiply(&Qstate, &Qstate, &Qtmp);
-    //pc.printf("%.5f, %.5f, %.5f , %.5f, %.5f, %.5f, %.5f\r\n", gyro_x, gyro_y, gyro_z, Qstate.r, Qstate.x, Qstate.y, Qstate.z)
+    pc.printf("%.5f, %.5f, %.5f , %.5f, %.5f, %.5f, %.5f\r\n", gyro.x, gyro.y, gyro.z, Qtmp.r, Qtmp.x, Qtmp.y, Qtmp.z);
     
-    static int counter = 0;
-    if (counter++ % 75 == 0)
-    {
-        counter = 0;
-        pc.printf("%.5f, %.5f, %.5f, %.5f\r\n", Qstate.r, Qstate.x, Qstate.y, Qstate.z);
-    }
+    // static int counter = 0;
+    // if (counter++ % 75 == 0)
+    // {
+    //     counter = 0;
+    //     pc.printf("%.5f, %.5f, %.5f, %.5f\r\n", Qstate.r, Qstate.x, Qstate.y, Qstate.z);
+    // }
 }
 
 inline void update_Rpos(Triple acc)
@@ -143,7 +144,7 @@ void newGyro()
     //! pc.printf("g: %i\r\n", gyrovals.size());
     //should only be one value, but be thorough
     for (unsigned int i = 0; i < gyrovals.size(); i++)
-        update_Qstate(i);
+        update_Qstate(gyrovals[i]);
 }
 
 void task_dr()
