@@ -51,6 +51,7 @@ inline void update_vals()
 
 inline void update_Qstate(Triple gyroVal)
 {
+    //convert from degrees to radians? possibly?
     volatile Triple_F gyro = {
         .x = raw2dps(gyroVal.x, 250) * GYRO_PERIOD,
         .y = raw2dps(gyroVal.y, 250) * GYRO_PERIOD,
