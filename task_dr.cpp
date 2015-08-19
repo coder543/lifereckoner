@@ -55,7 +55,6 @@ inline void update_Qstate(int gyroNum)
     gyro_x = raw2dps(gyrovals[gyroNum].x, 250) * GYRO_PERIOD / 2;
     gyro_y = raw2dps(gyrovals[gyroNum].y, 250) * GYRO_PERIOD / 2;
     gyro_z = raw2dps(gyrovals[gyroNum].z, 250) * GYRO_PERIOD / 2;
-    
     //Qtmp = qyaw * qpitch * qroll
     
     //qyaw
@@ -75,6 +74,14 @@ inline void update_Qstate(int gyroNum)
     
     //multiply Qstate by Qtmp to get new Qstate
     ao_quaternion_multiply(&Qstate, &Qstate, &Qtmp);
+    //pc.printf("%.5f, %.5f, %.5f , %.5f, %.5f, %.5f, %.5f\r\n", gyro_x, gyro_y, gyro_z, Qstate.r, Qstate.x, Qstate.y, Qstate.z)
+    
+    static int counter = 0;
+    if (counter++ % 75 == 0)
+    {
+        counter = 0;
+        pc.printf("%.5f, %.5f, %.5f, %.5f\r\n", Qstate.r, Qstate.x, Qstate.y, Qstate.z);
+    }
 }
 
 inline void update_Rpos(Triple acc)
@@ -115,7 +122,7 @@ inline void update_Rpos(Triple acc)
     counter += 1;
     if (counter % 75 == 0) {
         counter = 0;
-        pc.printf("%.5f, %.5f, %.5f , %.5f, %.5f, %.5f\r\n", Rpos.x, Rpos.y, Rpos.z, Rvel.x, Rvel.y, Rvel.z);
+        //pc.printf("%.5f, %.5f, %.5f , %.5f, %.5f, %.5f\r\n", Rpos.x, Rpos.y, Rpos.z, Rvel.x, Rvel.y, Rvel.z);
         //pc.printf("%.5f, %.5f, %.5f, %.5f\r\n", Qstate.r, Qstate.x, Qstate.y, Qstate.z);
         //pc.printf("%.5f,%.5f,%.5f,%.5f,%.5f,%.5f,%.5f\r\n", raw2gravities(acc.x, 2), raw2gravities(acc.y, 2), raw2gravities(acc.z, 2), acc_tmp.x, acc_tmp.y, acc_tmp.z, acc_tmp.r);
     }
@@ -152,6 +159,7 @@ void task_dr()
     gyroTick.attach(&newGyro, GYRO_PERIOD); //and sync this timer as much as possible
     
     
+__disable_irq();
     //consider popping accvals[0] off stack
     ao_quaternion gravity = {.r = 0, .x = raw2gravities(accvals[0].x, 2), .y = raw2gravities(accvals[0].y, 2), .z = raw2gravities(accvals[0].z, 2)};
     ao_quaternion_normalize(&gravity, &gravity);
@@ -159,7 +167,9 @@ void task_dr()
     ao_quaternion v = {.r = 0, .x = 0, .y = 0, .z = 1};
     
     ao_quaternion_vectors_to_rotation(&Qstate, &gravity, &v);
-   
+
+    pc.printf("%.5f,%.5f,%.5f,%.5f\r\n\r\n", Qstate.r, Qstate.x, Qstate.y, Qstate.z);
+__enable_irq();
     while (1); //busy loop forever
     
 }
