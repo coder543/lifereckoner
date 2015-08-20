@@ -53,13 +53,13 @@ clean:
 	$(CC)  $(CC_FLAGS) $(CC_SYMBOLS) -std=gnu99   $(INCLUDE_PATHS) -o $@ $<
 
 .cpp.o:
-	$(CPP) $(CC_FLAGS) $(CC_SYMBOLS) -std=gnu++98 -fno-rtti $(INCLUDE_PATHS) -o $@ $<
+	$(CPP) $(CC_FLAGS) $(CC_SYMBOLS) -std=c++11 -fno-rtti $(INCLUDE_PATHS) -o $@ $<
 
 LSM9DS0.o:
-	$(CPP) $(CC_FLAGS) $(CC_SYMBOLS) -std=gnu++98 -fno-rtti $(INCLUDE_PATHS) -o LSM9DS0.o LSM9DS0/LSM9DS0.cpp
+	$(CPP) $(CC_FLAGS) $(CC_SYMBOLS) -std=c++11 -fno-rtti $(INCLUDE_PATHS) -o LSM9DS0.o LSM9DS0/LSM9DS0.cpp
 
 LSM9DS0_helper.o:
-	$(CPP) $(CC_FLAGS) $(CC_SYMBOLS) -std=gnu++98 -fno-rtti $(INCLUDE_PATHS) -o LSM9DS0_helper.o LSM9DS0/LSM9DS0_helper.cpp
+	$(CPP) $(CC_FLAGS) $(CC_SYMBOLS) -std=c++11 -fno-rtti $(INCLUDE_PATHS) -o LSM9DS0_helper.o LSM9DS0/LSM9DS0_helper.cpp
 
 
 $(PROJECT).elf: $(OBJECTS) $(SYS_OBJECTS)
