@@ -8,7 +8,7 @@ This code is part of the work I'm doing for Google Summer of Code 2015.
 `ao_quaternion.h` was written by Keith Packard as part of the AltOS project. It is under the GPLv2, as my project now is, and its copyright notice is intact at the top of the file.
 
 ### status
-The summer is coming to a close, so I'm prepping this project for submission. I plan to continue working on it as time permits, but this is where things stand for now.
+The summer is coming to a close, so I'm prepping this project for submission. I plan to continue working on it after the summer as time permits, but this is where things stand for now.
 
 - [x] Find a suitable platform for this project, namely the STM32 Nucleo + mbed.
 - [x] Write an LSM9DS0 driver, so we can read real-time sensor data for instantaneous rate of rotatation, acceleration, and the magnetic field strength currently being sensed, all of which are three dimensional data points for a total of 9 axes.
