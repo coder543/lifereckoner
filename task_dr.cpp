@@ -22,14 +22,15 @@ vector<Triple> accvals;
 vector<Triple> gyrovals;
 Triple magvals;
 
-#define ACC_PERIOD    0.000625            //seconds between each accelerometer sample
-#define GYRO_PERIOD   0.0010416667        //seconds between each gyro sample
-#define MAG_PERIOD    0.01                //seconds between each magnetometer sample
+const float ACC_PERIOD    = 0.000625;            //seconds between each accelerometer sample
+const float GYRO_PERIOD   = 0.0010416667;        //seconds between each gyro sample
+const float MAG_PERIOD    = 0.01;                //seconds between each magnetometer sample
 
-#define ACC_PERIOD_2  0.000000390625      //seconds between each accelerometer sample
-#define GYRO_PERIOD_2 0.0000010850694     //seconds between each gyro sample
-#define MAG_PERIOD_2  0.0001              //seconds between each magnetometer sample
+const float ACC_PERIOD_2  = 0.000000390625;      //seconds between each accelerometer sample
+const float GYRO_PERIOD_2 = 0.0000010850694;     //seconds between each gyro sample
+const float MAG_PERIOD_2  = 0.0001;              //seconds between each magnetometer sample
 
+const float DEG2RAD       = 3.141592653589793 / 180;
 
 inline void update_vals()
 {
@@ -41,14 +42,18 @@ inline void update_vals()
 inline void update_Qstate(Triple gyro)
 {
     
+    float gyro_x, gyro_y, gyro_z;
+    gyro_x = raw2dps(gyro.x, 250) * DEG2RAD * GYRO_PERIOD / 2;
+    gyro_y = raw2dps(gyro.y, 250) * DEG2RAD * GYRO_PERIOD / 2;
+    gyro_z = raw2dps(gyro.z, 250) * DEG2RAD * GYRO_PERIOD / 2;
     //Qtmp = qyaw * qpitch * qroll
     
     //qyaw
-    ao_quaternion qz = {.r = cosf(gyro.z/2), .x = 0, .y = 0, .z = sinf(gyro.z/2)};
+    ao_quaternion qz = {.r = cosf(gyro_z), .x = 0, .y = 0, .z = sinf(gyro_z)};
     //qpitch
-    ao_quaternion qy = {.r = cosf(gyro.y/2), .x = 0, .y = sinf(gyro.y/2), .z = 0};
+    ao_quaternion qy = {.r = cosf(gyro_y), .x = 0, .y = sinf(gyro_y), .z = 0};
     //qroll
-    ao_quaternion qx = {.r = cosf(gyro.x/2), .x = sinf(gyro.x/2), .y = 0, .z = 0};
+    ao_quaternion qx = {.r = cosf(gyro_x), .x = sinf(gyro_x), .y = 0, .z = 0};
     
     //temporary variables
     ao_quaternion r1, Qtmp;
@@ -72,7 +77,7 @@ inline void update_Rpos(Triple acc)
     ao_quaternion_rotate(&acc_tmp, &acc_tmp, &Qstate);
     
     //acceleration, after rotation into the inertial reference frame
-    Triple_F acc_rotated = {.x = acc_tmp.x, .y = acc_tmp.y, .z = acc_tmp.z}; 
+    Triple_F acc_rotated = {.x = acc_tmp.x * ((float)9.81), .y = acc_tmp.y * ((float)9.81), .z = (acc_tmp.z - 1) * ((float)9.81)}; 
     
     //update current velocity
     Rvel.x += acc_rotated.x * ACC_PERIOD;
