@@ -5,8 +5,6 @@
 Ticker accTick;
 Ticker gyroTick;
 
-int counter = 0;
-
 struct Triple_F
 {
     float x;
@@ -17,6 +15,16 @@ struct Triple_F
 ao_quaternion Qstate; //quaternion state
 Triple_F Rpos = {.x = 0.0, .y = 0.0, .z = 0.0}; //Real position
 Triple_F Rvel = {.x = 0.0, .y = 0.0, .z = 0.0}; //Real velocity
+
+
+/*
+ *  Movement on each axis is completely unrelated to movement 
+ *  on any other axis, so each axis can have a separate Kalman
+ *  filter, and it should not suffer for it.
+ *  
+ *  In other words, covariance between axes should be zero.
+ */
+
 
 vector<Triple> accvals;
 vector<Triple> gyrovals;
@@ -39,21 +47,21 @@ inline void update_vals()
     magvals = lsm9.readMagneto();
 }
 
-inline void update_Qstate(Triple gyro)
+inline void update_Qstate(Triple gyroVal)
 {
-    
-    float gyro_x, gyro_y, gyro_z;
-    gyro_x = raw2dps(gyro.x, 250) * DEG2RAD * GYRO_PERIOD / 2;
-    gyro_y = raw2dps(gyro.y, 250) * DEG2RAD * GYRO_PERIOD / 2;
-    gyro_z = raw2dps(gyro.z, 250) * DEG2RAD * GYRO_PERIOD / 2;
+    volatile Triple_F gyro = {
+        .x = raw2dps(gyroVal.x, 250) * DEG2RAD * GYRO_PERIOD,
+        .y = raw2dps(gyroVal.y, 250) * DEG2RAD * GYRO_PERIOD,
+        .z = raw2dps(gyroVal.z, 250) * DEG2RAD * GYRO_PERIOD
+    };
+    //pc.printf("%.5f, %.5f, %.5f\r\n", gyro.x, gyro.y, gyro.z);
     //Qtmp = qyaw * qpitch * qroll
-    
     //qyaw
-    ao_quaternion qz = {.r = cosf(gyro_z), .x = 0, .y = 0, .z = sinf(gyro_z)};
+    ao_quaternion qz = {.r = cosf(gyro.z / 2), .x = 0, .y = 0, .z = sinf(gyro.z / 2)};
     //qpitch
-    ao_quaternion qy = {.r = cosf(gyro_y), .x = 0, .y = sinf(gyro_y), .z = 0};
+    ao_quaternion qy = {.r = cosf(gyro.y / 2), .x = 0, .y = sinf(gyro.y / 2), .z = 0};
     //qroll
-    ao_quaternion qx = {.r = cosf(gyro_x), .x = sinf(gyro_x), .y = 0, .z = 0};
+    ao_quaternion qx = {.r = cosf(gyro.x / 2), .x = sinf(gyro.x / 2), .y = 0, .z = 0};
     
     //temporary variables
     ao_quaternion r1, Qtmp;
@@ -65,11 +73,12 @@ inline void update_Qstate(Triple gyro)
     
     //multiply Qstate by Qtmp to get new Qstate
     ao_quaternion_multiply(&Qstate, &Qstate, &Qtmp);
-    
 }
 
 inline void update_Rpos(Triple acc)
 {
+    static int counter = 0;
+
     //pure quaternion form of acc after conversion to gravities
     ao_quaternion acc_tmp = {.r = 0, .x = raw2gravities(acc.x, 2), .y = raw2gravities(acc.y, 2), .z = raw2gravities(acc.z, 2)};
     
@@ -79,12 +88,12 @@ inline void update_Rpos(Triple acc)
     //acceleration, after rotation into the inertial reference frame
     Triple_F acc_rotated = {.x = acc_tmp.x * ((float)9.81), .y = acc_tmp.y * ((float)9.81), .z = (acc_tmp.z - 1) * ((float)9.81)}; 
     
-    //update current velocity
-    Rvel.x += acc_rotated.x * ACC_PERIOD;
-    Rvel.y += acc_rotated.y * ACC_PERIOD;
-    Rvel.z += acc_rotated.z * ACC_PERIOD;
+    // //update current velocity
+    Rvel.x = acc_rotated.x * ACC_PERIOD;
+    Rvel.y = acc_rotated.y * ACC_PERIOD;
+    Rvel.z = acc_rotated.z * ACC_PERIOD;
     
-    //update absolute position
+    // //update absolute position
     Rpos.x += Rvel.x * ACC_PERIOD + acc_rotated.x * ACC_PERIOD_2;
     Rpos.y += Rvel.y * ACC_PERIOD + acc_rotated.y * ACC_PERIOD_2;
     Rpos.z += Rvel.z * ACC_PERIOD + acc_rotated.z * ACC_PERIOD_2;
@@ -92,14 +101,13 @@ inline void update_Rpos(Triple acc)
     counter += 1;
     if (counter % 75 == 0) {
         counter = 0;
-        pc.printf("%.2f, %.2f, %.2f\r\n", Rpos.x, Rpos.y, Rpos.z);
+        pc.printf("%.5f, %.5f, %.5f , %.5f, %.5f, %.5f\r\n", Rpos.x, Rpos.y, Rpos.z, Rvel.x, Rvel.y, Rvel.z);
     }
 }
 
 void newAcc()
 {
     accvals = lsm9.readAccel();
-    //! pc.printf("x: %i\r\n", accvals.size());
     //should only be one value, but be thorough
     for (unsigned int i = 0; i < accvals.size(); i++)
         update_Rpos(accvals[i]);
@@ -108,7 +116,6 @@ void newAcc()
 void newGyro()
 {
     gyrovals = lsm9.readGyro();
-    //! pc.printf("g: %i\r\n", gyrovals.size());
     //should only be one value, but be thorough
     for (unsigned int i = 0; i < gyrovals.size(); i++)
         update_Qstate(gyrovals[i]);
@@ -121,12 +128,13 @@ void task_dr()
     pc.printf("Starting...\r\n");
     
     accvals = lsm9.readAccel(); //read the first real accel val,
-    accTick.attach(&newAcc, ACC_PERIOD); //which incidentally syncs this timer up
+    accTick.attach(&newAcc, ACC_PERIOD); //which, incidentally, might sync this timer up
     
     gyrovals = lsm9.readGyro(); //repeat for gyro vals
     gyroTick.attach(&newGyro, GYRO_PERIOD); //and sync this timer as much as possible
     
     
+__disable_irq();
     //consider popping accvals[0] off stack
     ao_quaternion gravity = {.r = 0, .x = raw2gravities(accvals[0].x, 2), .y = raw2gravities(accvals[0].y, 2), .z = raw2gravities(accvals[0].z, 2)};
     ao_quaternion_normalize(&gravity, &gravity);
@@ -134,7 +142,7 @@ void task_dr()
     ao_quaternion v = {.r = 0, .x = 0, .y = 0, .z = 1};
     
     ao_quaternion_vectors_to_rotation(&Qstate, &gravity, &v);
-   
+__enable_irq();
     while (1); //busy loop forever
     
 }
